@@ -4,6 +4,6 @@
   // language - current active spelling language
   "language": "en",
   // words - list of words to be always considered correct
-  "words": ["nestjs", "signin", "casinocats", "datasources"],
+  "words": ["nestjs", "signin", "casinocats", "datasources", "solana"],
   "flagWords": []
 }
