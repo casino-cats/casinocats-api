@@ -8,8 +8,9 @@ export class AuthService {
   constructor(private prisma: PrismaService) {}
 
   signin(dto: AuthDto) {
+    console.log({ dto });
     // signed message validation
-    const validationMessage = 'welcome to catcasino';
+    const validationMessage = 'Welcome to casinocats';
     const encodedMessage = new TextEncoder().encode(validationMessage);
 
     const result = sign.detached.verify(
@@ -20,6 +21,8 @@ export class AuthService {
 
     if (!result) throw new ForbiddenException('Credentials incorrect');
 
-    return 'I am in signin';
+    console.log(result);
+
+    return { result: 'I am in signin' };
   }
 }
