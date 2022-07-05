@@ -10,6 +10,12 @@ services:
    POSTGRES_DB: casinocats
   networks:
    - casinocatsworld
+ dev-cache:
+  image: redis
+  ports:
+   - 6379:6379
+  networks:
+   - casinocatsworld
 
 networks:
  casinocatsworld:
