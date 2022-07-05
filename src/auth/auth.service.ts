@@ -48,14 +48,22 @@ export class AuthService {
             profilePicture: 'https://picsum.photos/id/237/200/200',
           },
         });
-        return this.signToken(user.id, user.walletAddress);
+        return {
+          user: 'new',
+          access_token: (await this.signToken(user.id, user.walletAddress))
+            .access_token,
+        };
       } catch (e) {
         console.log(e);
       }
     }
 
     // signin
-    return this.signToken(user.id, user.walletAddress);
+    return {
+      user: 'old',
+      access_token: (await this.signToken(user.id, user.walletAddress))
+        .access_token,
+    };
   }
 
   async signToken(
