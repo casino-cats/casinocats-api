@@ -6,10 +6,12 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { SolanaModule } from './solana/solana.module';
 import { RouletteModule } from './roulette/roulette.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     CacheModule.register({
       isGlobal: true,
       store: redisStore,

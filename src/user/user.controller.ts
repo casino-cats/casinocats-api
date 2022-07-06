@@ -23,13 +23,23 @@ export class UserController {
   @Get('get-string-cache')
   async getSimpleString() {
     const value = await this.cacheManager.get('my-string');
-    if (value) {
+    let valueCount: number = await this.cacheManager.get('my-string-count');
+
+    if (value && valueCount) {
+      await this.cacheManager.set('my-string-count', ++valueCount);
+      console.log({
+        data: { value, valueCount },
+        loadsFrom: 'redis cache',
+      });
       return {
-        data: value,
+        data: { value, valueCount },
         loadsFrom: 'redis cache',
       };
     }
+
     await this.cacheManager.set('my-string', 'my name is simon', { ttl: 300 });
+    await this.cacheManager.set('my-string-count', 1, { ttl: 300 });
+    console.log(await this.cacheManager.get('my-string-count'));
 
     return {
       data: 'my name is simon',
