@@ -10,7 +10,8 @@
     "casinocats",
     "datasources",
     "solana",
-    "tweetnacl"
+    "tweetnacl",
+    "websockets"
   ],
   "flagWords": []
 }

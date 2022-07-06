@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SolanaModule } from './solana/solana.module';
 import { RouletteModule } from './roulette/roulette.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { RouletteGateway } from './roulette/roulette.gateway';
 
 @Module({
   imports: [
@@ -24,5 +25,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     SolanaModule,
     RouletteModule,
   ],
+  providers: [RouletteGateway],
 })
 export class AppModule {}
