@@ -1,35 +1,51 @@
 import { Injectable, Inject, CACHE_MANAGER } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
+import * as crypto from 'crypto';
+import { RouletteGateway } from './roulette.gateway';
 
 @Injectable()
 export class RouletteService {
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private rouletteGateway: RouletteGateway,
+  ) {}
+
+  getRandomResult(): string {
+    const random = crypto.randomBytes(8);
+    return (parseInt(random.toString('hex'), 16) % 3).toString();
+  }
+
+  getSeed(): string {
+    return crypto.randomBytes(8).toString('hex');
+  }
 
   @Interval(1000)
   async handleInterval() {
-    const value = await this.cacheManager.get('my-string');
-    let valueCount: number = await this.cacheManager.get('my-string-count');
+    let count: number = await this.cacheManager.get('count');
 
-    if (value && valueCount) {
-      await this.cacheManager.set('my-string-count', ++valueCount);
-      console.log({
-        data: { value, valueCount },
-        loadsFrom: 'redis cache',
+    if (count) {
+      await this.cacheManager.set('count', ++count);
+      this.rouletteGateway.wss.emit('messageToClient', {
+        count,
       });
-      return {
-        data: { value, valueCount },
-        loadsFrom: 'redis cache',
-      };
+      return;
     }
 
-    await this.cacheManager.set('my-string', 'my name is simon', { ttl: 0 });
-    await this.cacheManager.set('my-string-count', 1, { ttl: 0 });
-    console.log(await this.cacheManager.get('my-string-count'));
+    const seed = this.getSeed();
+    const rouletteResult = this.getRandomResult();
 
-    return {
-      data: 'my name is simon',
-      loadsFrom: 'fake database',
-    };
+    console.log({ seed });
+    const hash = crypto
+      .createHmac('sha256', seed)
+      .update(rouletteResult)
+      .digest('hex');
+
+    console.log(hash);
+
+    await this.cacheManager.set('seed', seed);
+    await this.cacheManager.set('rouletteResult', rouletteResult);
+
+    this.rouletteGateway.wss.emit('messageToClient', { hash });
   }
 }

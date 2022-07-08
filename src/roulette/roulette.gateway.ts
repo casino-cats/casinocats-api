@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   OnGatewayInit,
   SubscribeMessage,
@@ -8,18 +8,23 @@ import {
 import { Socket } from 'socket.io';
 import { Server } from 'http';
 
-@WebSocketGateway({ namespace: '/roulette' })
+@WebSocketGateway({ namespace: '/roulette', cors: 'http://locahost:3000' })
 export class RouletteGateway implements OnGatewayInit {
   @WebSocketServer() wss: Server;
 
   private logger: Logger = new Logger('RouletteGateway');
 
-  afterInit(server: any) {
+  afterInit() {
     this.logger.log('Initialized');
   }
 
   @SubscribeMessage('messageToServer')
   handleMessage(client: Socket, message: { sender: string; message: string }) {
-    this.wss.emit('msgToClient', message);
+    this.wss.emit('messageToClient', message);
+  }
+
+  @SubscribeMessage('tryBet')
+  handleTryBet(client: Socket, Payload) {
+    console.log({ Payload });
   }
 }
