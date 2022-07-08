@@ -24,28 +24,53 @@ export class RouletteService {
   async handleInterval() {
     let count: number = await this.cacheManager.get('count');
 
-    if (count) {
-      await this.cacheManager.set('count', ++count);
-      this.rouletteGateway.wss.emit('messageToClient', {
-        count,
-      });
+    // stop betting
+    if (count == 8) {
+      const round: number = await this.cacheManager.get('round');
+      const rouletteResult = await this.cacheManager.get('rouletteResult');
+      this.rouletteGateway.wss.emit('messageToClient', [
+        'roll',
+        { round: round, result: rouletteResult },
+      ]);
+      await this.cacheManager.set('count', ++count, { ttl: 0 });
       return;
     }
 
-    const seed = this.getSeed();
-    const rouletteResult = this.getRandomResult();
+    // end round
+    if (count == 10) {
+      const seed = await this.cacheManager.get('seed');
+      let round: number = await this.cacheManager.get('round');
+      this.rouletteGateway.wss.emit('messageToClient', [
+        'end',
+        { round: round, seed: seed },
+      ]);
 
-    console.log({ seed });
-    const hash = crypto
-      .createHmac('sha256', seed)
-      .update(rouletteResult)
-      .digest('hex');
+      await this.cacheManager.set('round', ++round, { ttl: 0 });
+      await this.cacheManager.set('count', 0, { ttl: 0 });
+      return;
+    }
 
-    console.log(hash);
+    // start round
+    if (count == 0) {
+      const round: number = await this.cacheManager.get('round');
+      const seed = this.getSeed();
+      const rouletteResult = this.getRandomResult();
+      console.log({ rouletteResult });
+      const hash = crypto
+        .createHmac('sha256', seed)
+        .update(rouletteResult)
+        .digest('hex');
 
-    await this.cacheManager.set('seed', seed);
-    await this.cacheManager.set('rouletteResult', rouletteResult);
+      await this.cacheManager.set('seed', seed, { ttl: 0 });
+      await this.cacheManager.set('rouletteResult', rouletteResult, { ttl: 0 });
+      this.rouletteGateway.wss.emit('messageToClient', [
+        'start',
+        { round: round, hash: hash },
+      ]);
+      await this.cacheManager.set('count', ++count, { ttl: 0 });
+      return;
+    }
 
-    this.rouletteGateway.wss.emit('messageToClient', { hash });
+    await this.cacheManager.set('count', ++count, { ttl: 0 });
   }
 }
