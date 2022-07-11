@@ -11,7 +11,8 @@
     "datasources",
     "solana",
     "tweetnacl",
-    "websockets"
+    "websockets",
+    "coinflip"
   ],
   "flagWords": []
 }
