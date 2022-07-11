@@ -5,10 +5,14 @@ import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { SolanaModule } from './solana/solana.module';
+import { RouletteModule } from './roulette/roulette.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { RouletteGateway } from './roulette/roulette.gateway';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     CacheModule.register({
       isGlobal: true,
       store: redisStore,
@@ -19,6 +23,8 @@ import { SolanaModule } from './solana/solana.module';
     UserModule,
     PrismaModule,
     SolanaModule,
+    RouletteModule,
   ],
+  providers: [RouletteGateway],
 })
 export class AppModule {}
