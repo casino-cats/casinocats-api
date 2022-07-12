@@ -8,8 +8,8 @@ import { SolanaModule } from './solana/solana.module';
 import { RouletteModule } from './roulette/roulette.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RouletteGateway } from './roulette/roulette.gateway';
-import { CoinflipController } from './coinflip/coinflip.controller';
 import { CoinflipModule } from './coinflip/coinflip.module';
+import { RandomModule } from './random/random.module';
 
 @Module({
   imports: [
@@ -27,8 +27,8 @@ import { CoinflipModule } from './coinflip/coinflip.module';
     SolanaModule,
     RouletteModule,
     CoinflipModule,
+    RandomModule,
   ],
   providers: [RouletteGateway],
-  controllers: [CoinflipController],
 })
 export class AppModule {}
