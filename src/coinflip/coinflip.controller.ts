@@ -1,11 +1,12 @@
-import { Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { CoinflipService } from './coinflip.service';
+import { CreateDto } from './dto';
 
 @Controller('coinflip')
 export class CoinflipController {
   constructor(private coinflipService: CoinflipService) {}
   @Post('create')
-  create() {
-    return this.coinflipService.create();
+  create(@Body() dto: CreateDto) {
+    return this.coinflipService.create(dto);
   }
 }
