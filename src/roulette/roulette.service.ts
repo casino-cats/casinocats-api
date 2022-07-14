@@ -20,7 +20,7 @@ export class RouletteService {
     return crypto.randomBytes(8).toString('hex');
   }
 
-  @Interval(1000)
+  // @Interval(1000)
   async handleInterval() {
     let count: number = await this.cacheManager.get('count');
 

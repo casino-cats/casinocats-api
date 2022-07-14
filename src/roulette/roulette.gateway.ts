@@ -18,11 +18,6 @@ export class RouletteGateway implements OnGatewayInit {
     this.logger.log('Initialized');
   }
 
-  @SubscribeMessage('messageToServer')
-  handleMessage(client: Socket, message: { sender: string; message: string }) {
-    this.wss.emit('messageToClient', message);
-  }
-
   @SubscribeMessage('tryBet')
   handleTryBet(client: Socket, Payload) {
     console.log({ Payload });
