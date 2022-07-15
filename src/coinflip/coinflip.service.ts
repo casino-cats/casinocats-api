@@ -43,11 +43,12 @@ export class CoinflipService {
     await this.cacheManager.set('coinflipRound', ++roundId, { ttl: 0 });
 
     // cache the round infos
+    const serverSeed = this.random.getRandomSeed(16);
     const roundInfo: RoundInfoType = {
       roundId: roundId,
       locked: false,
       result: null,
-      serverSeed: null,
+      serverSeed: serverSeed,
       creatorSeed: null,
       challengerSeed: null,
       betAmount: dto.betAmount,
@@ -57,8 +58,6 @@ export class CoinflipService {
     };
 
     await this.cacheManager.set(`coinflip${roundId}`, roundInfo, { ttl: 0 });
-
-    console.log(`coinflip${roundId}`);
 
     const temp = await this.cacheManager.get(`coinflip${roundId}`);
 
