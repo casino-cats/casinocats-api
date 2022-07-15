@@ -2,9 +2,7 @@ export type RoundInfoType = {
   roundId: number;
   locked: boolean;
   result: number;
-  serverSeed: string;
-  creatorSeed: string;
-  challengerSeed: string;
+  seed: string;
   betAmount: number;
   creatorId: string;
   creatorChosenSide: number;

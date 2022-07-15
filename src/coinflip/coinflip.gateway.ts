@@ -48,7 +48,6 @@ export class CoinflipGateway implements OnGatewayInit {
       { ttl: 0 },
     );
     roundInfo.challengerId = '123';
-    roundInfo.challengerSeed = payload.securityToken;
     // seed implementation
     await this.cacheManager.set(
       `coinflip${payload.roundId}`,
@@ -60,7 +59,6 @@ export class CoinflipGateway implements OnGatewayInit {
     this.wss.emit(MSG_TO_CLIENT, roundInfo);
     // emit game result after three seconds later
     setTimeout(() => this.handleRoundResult(payload.roundId), 3000);
-    this.random.getHexFromRandomOrg();
   }
 
   handleRoundResult(roundId: number) {

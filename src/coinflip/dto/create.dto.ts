@@ -9,7 +9,4 @@ export class CreateDto {
 
   @IsNotEmpty()
   betAmount: number;
-
-  @IsNotEmpty()
-  creatorSecurityToken: string;
 }

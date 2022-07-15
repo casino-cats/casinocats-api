@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import * as axios from 'axios';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class RandomService {
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
   getRandomHexString(): string {
     return crypto.randomBytes(64).toString('hex');
   }
@@ -23,7 +26,8 @@ export class RandomService {
     return parseInt(randomString, 16) % 2;
   }
 
-  async getHexFromRandomOrg() {
+  // TODO: exception
+  getHexFromRandomOrg() {
     axios
       .default({
         method: 'post',
@@ -34,19 +38,23 @@ export class RandomService {
           method: 'generateSignedStrings',
           params: {
             apiKey: 'ddb976ee-f90a-416d-997e-82f1384cf34d',
-            n: 8,
-            length: 10,
-            characters: '0123456789ABCDEF',
+            n: 10,
+            length: 8,
+            characters: '0123456789abcdef',
             replacement: true,
           },
           id: 42,
         }),
       })
-      .then((response) => {
+      .then(async (response) => {
         if (response.status === 200) {
-          console.log(response.data);
-          // Use client.receive when you received a JSON-RPC response.
-          // this.client.receive(response.data);
+          await this.cacheManager.set(
+            'random8Hex',
+            response.data.result.random.data,
+            {
+              ttl: 0,
+            },
+          );
         }
       });
   }

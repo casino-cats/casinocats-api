@@ -1,32 +1,18 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
+import * as _ from 'lodash';
+import * as crypto from 'crypto';
 import { RandomService } from 'src/random/random.service';
+import { CoinflipGateway } from './coinflip.gateway';
 import { CreateDto } from './dto';
-
-export type AcceptType = {
-  roundId: number;
-  challengerId: string;
-  securityToken: string;
-};
-
-type RoundInfoType = {
-  roundId: number;
-  locked: boolean;
-  result: number;
-  serverSeed: string;
-  creatorSeed: string;
-  challengerSeed: string;
-  betAmount: number;
-  creatorId: string;
-  creatorChosenSide: number;
-  challengerId: string;
-};
+import { RoundInfoType } from './types';
 
 @Injectable()
 export class CoinflipService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private random: RandomService,
+    private coinflipGateway: CoinflipGateway,
   ) {}
 
   // TODO: if coinflip round is not set
@@ -42,15 +28,25 @@ export class CoinflipService {
     // increase
     await this.cacheManager.set('coinflipRound', ++roundId, { ttl: 0 });
 
+    // get random
+    let random8HexList: [string] = await this.cacheManager.get('random8Hex');
+    if (!random8HexList || random8HexList.length < 1) {
+      await this.random.getHexFromRandomOrg();
+      random8HexList = await this.cacheManager.get('random8Hex');
+    }
+
     // cache the round infos
-    const serverSeed = this.random.getRandomSeed(16);
+    const seed = this.random.getRandomSeed(16);
+    const randomHex = _.first(random8HexList);
+    await this.cacheManager.set('random8Hex', _.drop(random8HexList), {
+      ttl: 0,
+    });
+    const result = parseInt(randomHex, 16) % 2;
     const roundInfo: RoundInfoType = {
       roundId: roundId,
       locked: false,
-      result: null,
-      serverSeed: serverSeed,
-      creatorSeed: null,
-      challengerSeed: null,
+      result: result,
+      seed: seed,
       betAmount: dto.betAmount,
       creatorId: dto.creatorId,
       creatorChosenSide: dto.creatorChosenSide,
@@ -59,8 +55,16 @@ export class CoinflipService {
 
     await this.cacheManager.set(`coinflip${roundId}`, roundInfo, { ttl: 0 });
 
-    const temp = await this.cacheManager.get(`coinflip${roundId}`);
+    const hash = crypto
+      .createHmac('sha256', seed)
+      .update(result.toString())
+      .digest('hex');
 
-    return { temp };
+    this.coinflipGateway.wss.emit('created', {
+      roundId: roundInfo.roundId,
+      betAmount: roundInfo.betAmount,
+      creatorChoseSided: roundInfo.creatorChosenSide,
+      hash: hash,
+    });
   }
 }
