@@ -10,9 +10,15 @@ import { Cache } from 'cache-manager';
 import * as _ from 'lodash';
 import * as crypto from 'crypto';
 import { RoundInfoType } from './types';
-import { MSG_TO_CLIENT } from './constants';
+import {
+  MSG_TO_CLIENT,
+  ROUND_CREATED,
+  ROUND_ENDED,
+  ROUND_STARTED,
+} from './constants';
 import { RandomService } from 'src/random/random.service';
 import { CreateDto } from './dto';
+import { AcceptDto } from './dto/accept.dto';
 
 @WebSocketGateway({ namespace: '/coinflip', cors: 'http://localhost:3000' })
 export class CoinflipGateway implements OnGatewayInit {
@@ -75,7 +81,7 @@ export class CoinflipGateway implements OnGatewayInit {
       .update(result.toString())
       .digest('hex');
 
-    this.wss.emit('created', {
+    this.wss.emit(ROUND_CREATED, {
       roundId: roundInfo.roundId,
       betAmount: roundInfo.betAmount,
       creatorChosenSide: roundInfo.creatorChosenSide,
@@ -85,18 +91,17 @@ export class CoinflipGateway implements OnGatewayInit {
 
   // TODO: useGuard, challengerId, securityToken
   @SubscribeMessage('accept')
-  async handleMessage(
-    client: Socket,
-    payload: { roundId: number; securityToken: string },
-  ) {
+  async handleMessage(client: Socket, payload: AcceptDto) {
+    console.log(payload.roundId);
     const roundInfo: RoundInfoType = await this.cacheManager.get(
       `coinflip${payload.roundId}`,
     );
+    console.log(roundInfo);
     // exceptions
     // if (!roundInfo) return;
     // if (roundInfo.locked) return;
     // lock the round and start the round
-    roundInfo.locked = true;
+    // roundInfo.locked = true;
     await this.cacheManager.set(
       `coinflip${payload.roundId}`,
       {
@@ -104,21 +109,20 @@ export class CoinflipGateway implements OnGatewayInit {
       },
       { ttl: 0 },
     );
-    roundInfo.challengerId = '123';
+    roundInfo.challengerId = 'test_id_2';
     // seed implementation
-    await this.cacheManager.set(
-      `coinflip${payload.roundId}`,
-      {
-        roundInfo,
-      },
-      { ttl: 0 },
-    );
-    this.wss.emit(MSG_TO_CLIENT, roundInfo);
-    // emit game result after three seconds later
-    setTimeout(() => this.handleRoundResult(payload.roundId), 3000);
+    await this.cacheManager.set(`coinflip${payload.roundId}`, roundInfo, {
+      ttl: 0,
+    });
+    this.wss.emit(ROUND_STARTED, {
+      roundId: roundInfo.roundId,
+    });
+    // emit game result after 3000ms
+    setTimeout(() => this.handleRoundResult(roundInfo.roundId), 3000);
   }
 
-  handleRoundResult(roundId: number) {
-    this.wss.emit(MSG_TO_CLIENT, `roundInfo${roundId}`);
+  async handleRoundResult(roundId: number) {
+    const roundInfo = await this.cacheManager.get(`coinflip${roundId}`);
+    this.wss.emit(ROUND_ENDED, roundInfo);
   }
 }

@@ -1,5 +1,6 @@
+import { IsNotEmpty } from 'class-validator';
+
 export class AcceptDto {
+  @IsNotEmpty()
   roundId: number;
-  challengerId: string;
-  securityToken: string;
 }
