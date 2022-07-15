@@ -1,29 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import * as axios from 'axios';
 import * as crypto from 'crypto';
-import { JSONRPCClient } from 'json-rpc-2.0';
 
 @Injectable()
 export class RandomService {
-  private client;
-
-  constructor() {
-    this.client = new JSONRPCClient((jsonRPCRequest) =>
-      axios.default
-        .post('https://api.random.org/json-rpc/4/invoke', {
-          body: jsonRPCRequest,
-        })
-        .then((response) => {
-          if (response.status === 200) {
-            console.log(jsonRPCRequest);
-            console.log(response.data);
-            // Use client.receive when you received a JSON-RPC response.
-            // this.client.receive(response.data);
-          }
-        }),
-    );
-  }
-
   getRandomHexString(): string {
     return crypto.randomBytes(64).toString('hex');
   }
