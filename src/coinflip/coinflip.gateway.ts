@@ -1,4 +1,4 @@
-import { Inject, Logger, CACHE_MANAGER } from '@nestjs/common';
+import { Inject, Logger, CACHE_MANAGER, UseGuards } from '@nestjs/common';
 import {
   OnGatewayInit,
   SubscribeMessage,
@@ -10,15 +10,9 @@ import { Cache } from 'cache-manager';
 import * as _ from 'lodash';
 import * as crypto from 'crypto';
 import { RoundInfoType } from './types';
-import {
-  MSG_TO_CLIENT,
-  ROUND_CREATED,
-  ROUND_ENDED,
-  ROUND_STARTED,
-} from './constants';
 import { RandomService } from 'src/random/random.service';
-import { CreateDto } from './dto';
-import { AcceptDto } from './dto/accept.dto';
+import { ROUND_CREATED, ROUND_ENDED, ROUND_STARTED } from './constants';
+import { CreateDto, AcceptDto } from './dto';
 
 @WebSocketGateway({ namespace: '/coinflip', cors: 'http://localhost:3000' })
 export class CoinflipGateway implements OnGatewayInit {
@@ -35,15 +29,15 @@ export class CoinflipGateway implements OnGatewayInit {
     this.logger.log('Initialized');
   }
 
+  // @UseGuards(JwtGuard)
   @SubscribeMessage('create')
-  async handleCreateRound(client: Socket, payload: CreateDto) {
-    console.log(payload);
+  async handleCreateRound(client: Socket, dto: CreateDto) {
     let roundId: number = await this.cacheManager.get('coinflipRound');
 
     // if coinflip round is null set to 1
     if (!roundId) {
       await this.cacheManager.set('coinflipRound', 0, { ttl: 0 });
-      roundId = 1;
+      roundId = 0;
     }
 
     // increase the roundId
@@ -68,9 +62,9 @@ export class CoinflipGateway implements OnGatewayInit {
       locked: false,
       result: result,
       seed: seed,
-      betAmount: payload.betAmount,
+      betAmount: dto.betAmount,
       creatorId: 'test_id_1',
-      creatorChosenSide: payload.creatorChosenSide,
+      creatorChosenSide: dto.creatorChosenSide,
       challengerId: null,
     };
     await this.cacheManager.set(`coinflip${roundId}`, roundInfo, { ttl: 0 });
@@ -91,19 +85,17 @@ export class CoinflipGateway implements OnGatewayInit {
 
   // TODO: useGuard, challengerId, securityToken
   @SubscribeMessage('accept')
-  async handleMessage(client: Socket, payload: AcceptDto) {
-    console.log(payload.roundId);
+  async handleMessage(client: Socket, dto: AcceptDto) {
     const roundInfo: RoundInfoType = await this.cacheManager.get(
-      `coinflip${payload.roundId}`,
+      `coinflip${dto.roundId}`,
     );
-    console.log(roundInfo);
     // exceptions
     // if (!roundInfo) return;
     // if (roundInfo.locked) return;
     // lock the round and start the round
     // roundInfo.locked = true;
     await this.cacheManager.set(
-      `coinflip${payload.roundId}`,
+      `coinflip${dto.roundId}`,
       {
         roundInfo,
       },
@@ -111,7 +103,7 @@ export class CoinflipGateway implements OnGatewayInit {
     );
     roundInfo.challengerId = 'test_id_2';
     // seed implementation
-    await this.cacheManager.set(`coinflip${payload.roundId}`, roundInfo, {
+    await this.cacheManager.set(`coinflip${dto.roundId}`, roundInfo, {
       ttl: 0,
     });
     this.wss.emit(ROUND_STARTED, {
@@ -124,5 +116,6 @@ export class CoinflipGateway implements OnGatewayInit {
   async handleRoundResult(roundId: number) {
     const roundInfo = await this.cacheManager.get(`coinflip${roundId}`);
     this.wss.emit(ROUND_ENDED, roundInfo);
+    await this.cacheManager.del(`coinflip${roundId}`);
   }
 }
