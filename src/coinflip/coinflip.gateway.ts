@@ -1,6 +1,7 @@
 import { Inject, Logger, CACHE_MANAGER, UseGuards } from '@nestjs/common';
 import {
-  OnGatewayInit,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -13,9 +14,10 @@ import { RoundInfoType } from './types';
 import { RandomService } from 'src/random/random.service';
 import { ROUND_CREATED, ROUND_ENDED, ROUND_STARTED } from './constants';
 import { CreateDto, AcceptDto } from './dto';
+import { AuthService } from 'src/auth/auth.service';
 
 @WebSocketGateway({ namespace: '/coinflip', cors: 'http://localhost:3000' })
-export class CoinflipGateway implements OnGatewayInit {
+export class CoinflipGateway {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private random: RandomService,
@@ -25,13 +27,10 @@ export class CoinflipGateway implements OnGatewayInit {
 
   private logger: Logger = new Logger('CoinflipGateway');
 
-  afterInit() {
-    this.logger.log('Initialized');
-  }
-
-  // @UseGuards(JwtGuard)
   @SubscribeMessage('create')
   async handleCreateRound(client: Socket, dto: CreateDto) {
+    console.log(client.handshake.headers.authorization);
+    return;
     let roundId: number = await this.cacheManager.get('coinflipRound');
 
     // if coinflip round is null set to 1
