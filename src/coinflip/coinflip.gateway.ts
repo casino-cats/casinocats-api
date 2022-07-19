@@ -1,7 +1,5 @@
-import { Inject, Logger, CACHE_MANAGER, UseGuards } from '@nestjs/common';
+import { Inject, CACHE_MANAGER, UseGuards } from '@nestjs/common';
 import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -14,7 +12,7 @@ import { RoundInfoType } from './types';
 import { RandomService } from 'src/random/random.service';
 import { ROUND_CREATED, ROUND_ENDED, ROUND_STARTED } from './constants';
 import { CreateDto, AcceptDto } from './dto';
-import { AuthService } from 'src/auth/auth.service';
+import { WsGuard } from 'src/auth/guard/ws.guard';
 
 @WebSocketGateway({ namespace: '/coinflip', cors: 'http://localhost:3000' })
 export class CoinflipGateway {
@@ -25,12 +23,9 @@ export class CoinflipGateway {
 
   @WebSocketServer() wss: Server;
 
-  private logger: Logger = new Logger('CoinflipGateway');
-
+  // @UseGuards(WsGuard)
   @SubscribeMessage('create')
   async handleCreateRound(client: Socket, dto: CreateDto) {
-    console.log(client.handshake.headers.authorization);
-    return;
     let roundId: number = await this.cacheManager.get('coinflipRound');
 
     // if coinflip round is null set to 1
@@ -42,25 +37,11 @@ export class CoinflipGateway {
     // increase the roundId
     await this.cacheManager.set('coinflipRound', ++roundId, { ttl: 0 });
 
-    // get random
-    let random8HexList: [string] = await this.cacheManager.get('random8Hex');
-    if (!random8HexList || random8HexList[0].length < 1) {
-      await this.random.getHexFromRandomOrg();
-      random8HexList = await this.cacheManager.get('random8Hex');
-    }
-
     // cache the round info
-    const seed = this.random.getRandomSeed(16);
-    const randomHex = _.first(random8HexList);
-    await this.cacheManager.set('random8Hex', _.drop(random8HexList), {
-      ttl: 0,
-    });
-    const result = parseInt(randomHex, 16) % 2;
     const roundInfo: RoundInfoType = {
       roundId: roundId,
       locked: false,
-      result: result,
-      seed: seed,
+      result: null,
       betAmount: dto.betAmount,
       creatorId: 'test_id_1',
       creatorChosenSide: dto.creatorChosenSide,
@@ -69,16 +50,10 @@ export class CoinflipGateway {
     await this.cacheManager.set(`coinflip${roundId}`, roundInfo, { ttl: 0 });
 
     // emit create round info
-    const hash = crypto
-      .createHmac('sha256', seed)
-      .update(result.toString())
-      .digest('hex');
-
     this.wss.emit(ROUND_CREATED, {
       roundId: roundInfo.roundId,
       betAmount: roundInfo.betAmount,
       creatorChosenSide: roundInfo.creatorChosenSide,
-      hash: hash,
     });
   }
 
@@ -93,13 +68,6 @@ export class CoinflipGateway {
     // if (roundInfo.locked) return;
     // lock the round and start the round
     // roundInfo.locked = true;
-    await this.cacheManager.set(
-      `coinflip${dto.roundId}`,
-      {
-        roundInfo,
-      },
-      { ttl: 0 },
-    );
     roundInfo.challengerId = 'test_id_2';
     // seed implementation
     await this.cacheManager.set(`coinflip${dto.roundId}`, roundInfo, {
@@ -110,6 +78,12 @@ export class CoinflipGateway {
     });
     // emit game result after 3000ms
     setTimeout(() => this.handleRoundResult(roundInfo.roundId), 3000);
+    const randomHex = await this.random.getHexFromRandomOrg();
+    const result = parseInt(randomHex, 16) % 2;
+    roundInfo.result = result;
+    await this.cacheManager.set(`coinflip${dto.roundId}`, roundInfo, {
+      ttl: 0,
+    });
   }
 
   async handleRoundResult(roundId: number) {

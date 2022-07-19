@@ -1,11 +1,13 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { WsException } from '@nestjs/websockets';
 import * as jwt from 'jsonwebtoken';
 import { Observable } from 'rxjs';
 
 @Injectable()
 export class WsGuard implements CanActivate {
   constructor(private config: ConfigService) {}
+
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
@@ -14,12 +16,12 @@ export class WsGuard implements CanActivate {
       .handshake.headers.authorization.split(' ')[1];
     try {
       const decoded = jwt.verify(bearerToken, this.config.get('JWT_SECRET'));
-      console.log(decoded);
       if (decoded) return true;
       return false;
     } catch (error) {
-      console.log(error);
-      return false;
+      // throw new WsException('Invalid Credentials');
+      console.log(context.getArgByIndex(0));
+      // return false;
     }
   }
 }

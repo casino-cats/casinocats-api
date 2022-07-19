@@ -2,10 +2,14 @@ import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import * as axios from 'axios';
 import * as crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RandomService {
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private configService: ConfigService,
+  ) {}
 
   getRandomHexString(): string {
     return crypto.randomBytes(64).toString('hex');
@@ -26,9 +30,9 @@ export class RandomService {
     return parseInt(randomString, 16) % 2;
   }
 
-  // TODO: exception
-  getHexFromRandomOrg() {
-    axios
+  // TODO: exception, error
+  getHexFromRandomOrg(): Promise<string> {
+    return axios
       .default({
         method: 'post',
         url: 'https://api.random.org/json-rpc/4/invoke',
@@ -37,8 +41,8 @@ export class RandomService {
           jsonrpc: '2.0',
           method: 'generateSignedStrings',
           params: {
-            apiKey: 'ddb976ee-f90a-416d-997e-82f1384cf34d',
-            n: 10,
+            apiKey: this.configService.get('RANDOM_API_KEY'),
+            n: 1,
             length: 8,
             characters: '0123456789abcdef',
             replacement: true,
@@ -48,13 +52,9 @@ export class RandomService {
       })
       .then(async (response) => {
         if (response.status === 200) {
-          await this.cacheManager.set(
-            'random8Hex',
-            response.data.result.random.data,
-            {
-              ttl: 0,
-            },
-          );
+          return response.data.result.random.data[0];
+        } else {
+          return 'error';
         }
       });
   }
