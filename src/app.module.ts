@@ -9,6 +9,7 @@ import { RouletteModule } from './roulette/roulette.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CoinflipModule } from './coinflip/coinflip.module';
 import { RandomModule } from './random/random.module';
+import { CrashModule } from './crash/crash.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RandomModule } from './random/random.module';
     RouletteModule,
     CoinflipModule,
     RandomModule,
+    CrashModule,
   ],
   providers: [],
 })
