@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import {
   OnGatewayInit,
   SubscribeMessage,
@@ -16,11 +16,6 @@ export class RouletteGateway implements OnGatewayInit {
 
   afterInit() {
     this.logger.log('Initialized');
-  }
-
-  @SubscribeMessage('messageToServer')
-  handleMessage(client: Socket, message: { sender: string; message: string }) {
-    this.wss.emit('messageToClient', message);
   }
 
   @SubscribeMessage('tryBet')
