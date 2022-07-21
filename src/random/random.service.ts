@@ -30,6 +30,10 @@ export class RandomService {
     return parseInt(randomString, 16) % 2;
   }
 
+  getRandomFinalMultiplierForCrash(): number {
+    return 5.53;
+  }
+
   // TODO: exception, error
   getHexFromRandomOrg(): Promise<string> {
     return axios
