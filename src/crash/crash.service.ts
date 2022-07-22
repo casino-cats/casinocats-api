@@ -1,22 +1,43 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import {
+  CACHE_MANAGER,
+  Inject,
+  Injectable,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
 import { RandomService } from 'src/random/random.service';
 import { UtilService } from 'src/util/util.service';
 import { CrashGateway } from './crash.gateway';
-import { ROUND_STARTED } from './helper/constants';
+import {
+  CRASH_BETTING_STARTED,
+  CRASH_CACHE_KEY_BET_INFO,
+  CRASH_CACHE_KEY_ROUND_STATE,
+  CRASH_ENDED,
+  CRASH_STARTED,
+} from './helper/constants';
 import { calculateRoundTime } from './helper/round';
-import { CrashRoundInfo } from './types';
-import { CACHE_KEY_CRASH_ROUND_INFO } from './types/cache';
+import { CrashBetInfo, CrashRoundInfo, CRASH_ROUND_STATES } from './types';
+import { CRASH_CACHE_KEY_ROUND_INFO } from './helper/constants';
 
 @Injectable()
-export class CrashService {
+export class CrashService implements OnModuleInit {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private randomService: RandomService,
     private crashGateway: CrashGateway,
     private utilService: UtilService,
   ) {}
+
+  async onModuleInit() {
+    await this.cacheManager.set(
+      CRASH_CACHE_KEY_ROUND_STATE,
+      CRASH_ROUND_STATES.PREPARATION,
+      { ttl: 0 },
+    );
+
+    await this.cacheManager.set<CrashBetInfo[]>(CRASH_CACHE_KEY_BET_INFO, []);
+  }
 
   async getCurrentGame() {
     return this.randomService.getRandomFinalMultiplierForCrash();
@@ -30,13 +51,20 @@ export class CrashService {
     return 'cashOut';
   }
 
-  // @Interval(5000)
+  // @Interval(1000)
   async handleInterval() {
-    let roundInfo: CrashRoundInfo = await this.cacheManager.get(
-      CACHE_KEY_CRASH_ROUND_INFO,
+    const roundState: string = await this.cacheManager.get(
+      CRASH_CACHE_KEY_ROUND_STATE,
+    );
+    let roundInfo = await this.cacheManager.get<CrashRoundInfo>(
+      CRASH_CACHE_KEY_ROUND_INFO,
+    );
+    const betInfo = await this.cacheManager.get<CrashBetInfo[]>(
+      CRASH_CACHE_KEY_BET_INFO,
     );
 
-    if (!roundInfo) {
+    // preparation state
+    if (roundState == CRASH_ROUND_STATES.PREPARATION && !roundInfo) {
       const finalMultiplier =
         this.randomService.getRandomFinalMultiplierForCrash();
       const roundTime = calculateRoundTime(finalMultiplier);
@@ -53,21 +81,37 @@ export class CrashService {
         roundTime,
       );
 
-      this.crashGateway.wss.emit(ROUND_STARTED, {
+      await this.cacheManager.set(
+        CRASH_CACHE_KEY_ROUND_STATE,
+        CRASH_ROUND_STATES.BETTING,
+      );
+
+      this.crashGateway.wss.emit(CRASH_BETTING_STARTED, {
         roundId: roundInfo.roundId,
         hash: roundInfo.hash,
       });
+
+      return;
     }
 
     const timeLeft = roundInfo.endTime - Date.now();
 
     if (timeLeft <= 1000 && timeLeft > 0) {
       setTimeout(() => {
-        console.log('game:end');
+        this.handleRoundEnded();
       }, timeLeft);
     }
+  }
 
-    // await this.cacheManager.set('crashRoundInfo', roundInfo, { ttl: 0 });
+  private async handleRoundEnded() {
+    const roundInfo = await this.cacheManager.get<CrashRoundInfo>(
+      CRASH_CACHE_KEY_ROUND_INFO,
+    );
+    this.crashGateway.wss.emit(CRASH_ENDED, {
+      roundId: roundInfo.roundId,
+      roundResult: roundInfo.finalMultiplier,
+      seed: roundInfo.seed,
+    });
   }
 
   // TODO: roundId based on previous roundId from database
@@ -87,7 +131,7 @@ export class CrashService {
     };
 
     await this.cacheManager.set<CrashRoundInfo>(
-      CACHE_KEY_CRASH_ROUND_INFO,
+      CRASH_CACHE_KEY_ROUND_INFO,
       data,
       { ttl: 0 },
     );

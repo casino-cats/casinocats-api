@@ -5,6 +5,6 @@ import { CrashGateway } from './crash.gateway';
 
 @Module({
   controllers: [CrashController],
-  providers: [CrashService, CrashGateway]
+  providers: [CrashService, CrashGateway],
 })
 export class CrashModule {}
