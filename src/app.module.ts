@@ -10,6 +10,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CoinflipModule } from './coinflip/coinflip.module';
 import { RandomModule } from './random/random.module';
 import { CrashModule } from './crash/crash.module';
+import { UtilModule } from './util/util.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CrashModule } from './crash/crash.module';
     CoinflipModule,
     RandomModule,
     CrashModule,
+    UtilModule,
   ],
   providers: [],
 })

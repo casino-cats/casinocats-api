@@ -1,5 +1,8 @@
 export type CrashRoundInfo = {
+  roundId: number;
   finalMultiplier: number;
+  hash: string;
+  seed: string;
   startTime: number;
   endTime: number;
 };
