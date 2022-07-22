@@ -13,6 +13,18 @@ export class CrashService {
     private randomService: RandomService,
   ) {}
 
+  async getCurrentGame() {
+    return 'getCurrentGame';
+  }
+
+  async placeBet() {
+    return 'placeBet';
+  }
+
+  async cashOut() {
+    return 'cashOut';
+  }
+
   // @Interval(1000)
   async handleInterval() {
     let roundInfo: CrashRoundInfo = await this.cacheManager.get(
