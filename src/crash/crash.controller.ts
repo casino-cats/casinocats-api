@@ -5,17 +5,17 @@ import { CrashService } from './crash.service';
 export class CrashController {
   constructor(private crashService: CrashService) {}
 
-  @Get()
+  @Get('getCurrentGame')
   getCurrentGame() {
     return this.crashService.getCurrentGame();
   }
 
-  @Post()
+  @Post('placeBet')
   placeBet() {
     return this.crashService.placeBet();
   }
 
-  @Post()
+  @Post('cashOut')
   cashOut() {
     return this.crashService.cashOut();
   }

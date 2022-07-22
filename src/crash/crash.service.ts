@@ -14,7 +14,7 @@ export class CrashService {
   ) {}
 
   async getCurrentGame() {
-    return 'getCurrentGame';
+    return this.randomService.getRandomFinalMultiplierForCrash();
   }
 
   async placeBet() {

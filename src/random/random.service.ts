@@ -31,7 +31,24 @@ export class RandomService {
   }
 
   getRandomFinalMultiplierForCrash(): number {
-    return 5.53;
+    return this.random_bm(1, 100, 8);
+  }
+
+  private random_bm(min, max, skew) {
+    let u = 0,
+      v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+
+    num = num / 10.0 + 0.5;
+    if (num > 1 || num < 0) num = this.random_bm(min, max, skew);
+    else {
+      num = Math.pow(num, skew);
+      num *= max - min;
+      num += min;
+    }
+    return num;
   }
 
   // TODO: exception, error
