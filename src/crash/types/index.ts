@@ -8,9 +8,10 @@ export type CrashRoundInfo = {
 };
 
 export type CrashBetInfo = {
-  userId: string;
-  betAmount: number;
-  multiplier: number;
+  roundId: number;
+  emit: boolean;
+  bettingStarted: number;
+  bettingList: [];
 };
 
 export enum CRASH_ROUND_STATES {
