@@ -12,12 +12,13 @@ import { CrashGateway } from './crash.gateway';
 import {
   CRASH_BETTING_ENDED,
   CRASH_BETTING_STARTED,
+  CRASH_BETTING_TIME,
   CRASH_CACHE_KEY_BET_INFO,
   CRASH_CACHE_KEY_ROUND_STATE,
   CRASH_ENDED,
   CRASH_STARTED,
 } from './helper/constants';
-import { calculateRoundTime } from './helper/round';
+import { getTimeFromMultiplier } from './helper/round';
 import { CrashBetInfo, CrashRoundInfo, CRASH_ROUND_STATES } from './types';
 import { CRASH_CACHE_KEY_ROUND_INFO } from './helper/constants';
 
@@ -37,9 +38,11 @@ export class CrashService implements OnModuleInit {
       { ttl: 0 },
     );
 
-    await this.cacheManager.set<CrashBetInfo>(CRASH_CACHE_KEY_BET_INFO, null, {
-      ttl: 0,
-    });
+    await this.cacheManager.set(CRASH_CACHE_KEY_ROUND_INFO, 0, { ttl: 0 });
+
+    // await this.cacheManager.set(CRASH_CACHE_KEY_BET_INFO, null, {
+    //   ttl: 0,
+    // });
   }
 
   async getCurrentGame() {
@@ -54,9 +57,9 @@ export class CrashService implements OnModuleInit {
     return 'cashOut';
   }
 
-  // @Interval(1000)
+  @Interval(1000)
   async handleInterval() {
-    const roundState: string = await this.cacheManager.get(
+    const roundState = await this.cacheManager.get<string>(
       CRASH_CACHE_KEY_ROUND_STATE,
     );
     let roundInfo = await this.cacheManager.get<CrashRoundInfo>(
@@ -67,10 +70,12 @@ export class CrashService implements OnModuleInit {
     );
 
     // preparation state
-    if (roundState == CRASH_ROUND_STATES.PREPARATION && !roundInfo) {
+    if (
+      roundState == CRASH_ROUND_STATES.PREPARATION &&
+      roundInfo.finalMultiplier == null
+    ) {
       const finalMultiplier =
         this.randomService.getRandomFinalMultiplierForCrash();
-      const roundTime = calculateRoundTime(finalMultiplier);
       const seed = this.randomService.getRandomSeed(64);
       const hash = this.utilService.getHashFromResultAndSeed(
         finalMultiplier,
@@ -81,12 +86,12 @@ export class CrashService implements OnModuleInit {
         finalMultiplier,
         hash,
         seed,
-        roundTime,
       );
 
       await this.cacheManager.set(
         CRASH_CACHE_KEY_ROUND_STATE,
         CRASH_ROUND_STATES.BETTING,
+        { ttl: 0 },
       );
 
       await this.cacheManager.set<CrashBetInfo>(
@@ -119,10 +124,11 @@ export class CrashService implements OnModuleInit {
 
       const timePassed = Date.now() - betInfo.bettingStarted;
 
-      if (timePassed >= 0 && timePassed < 1000) {
+      if (timePassed > CRASH_BETTING_TIME) {
         await this.cacheManager.set(
           CRASH_CACHE_KEY_ROUND_STATE,
           CRASH_ROUND_STATES.CRASH,
+          { ttl: 0 },
         );
 
         this.crashGateway.wss.emit(CRASH_BETTING_ENDED, {
@@ -131,6 +137,24 @@ export class CrashService implements OnModuleInit {
       }
 
       return;
+    }
+
+    // crash
+
+    if (!roundInfo.startTime) {
+      const roundTime = getTimeFromMultiplier(roundInfo.finalMultiplier);
+      console.log(roundInfo.finalMultiplier);
+      console.log(roundTime);
+      roundInfo.startTime = Date.now();
+      roundInfo.endTime = Date.now() + roundTime;
+
+      await this.cacheManager.set<CrashRoundInfo>(
+        CRASH_CACHE_KEY_ROUND_INFO,
+        roundInfo,
+        { ttl: 0 },
+      );
+
+      this.crashGateway.wss.emit(CRASH_STARTED, { roundId: roundInfo.roundId });
     }
 
     const timeLeft = roundInfo.endTime - Date.now();
@@ -146,6 +170,23 @@ export class CrashService implements OnModuleInit {
     const roundInfo = await this.cacheManager.get<CrashRoundInfo>(
       CRASH_CACHE_KEY_ROUND_INFO,
     );
+
+    await this.cacheManager.set(
+      CRASH_CACHE_KEY_ROUND_STATE,
+      CRASH_ROUND_STATES.PREPARATION,
+      { ttl: 0 },
+    );
+
+    roundInfo.endTime = null;
+    roundInfo.finalMultiplier = null;
+    roundInfo.hash = null;
+    ++roundInfo.roundId;
+    roundInfo.startTime = null;
+
+    await this.cacheManager.set(CRASH_CACHE_KEY_ROUND_INFO, roundInfo, {
+      ttl: 0,
+    });
+
     this.crashGateway.wss.emit(CRASH_ENDED, {
       roundId: roundInfo.roundId,
       roundResult: roundInfo.finalMultiplier,
@@ -158,15 +199,14 @@ export class CrashService implements OnModuleInit {
     finalMultiplier: number,
     hash: string,
     seed: string,
-    roundTime: number,
   ): Promise<CrashRoundInfo> {
     const data: CrashRoundInfo = {
       roundId: 1,
       finalMultiplier,
       hash,
       seed,
-      startTime: Date.now(),
-      endTime: Date.now() + roundTime,
+      startTime: null,
+      endTime: null,
     };
 
     await this.cacheManager.set<CrashRoundInfo>(

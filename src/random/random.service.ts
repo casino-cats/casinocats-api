@@ -31,7 +31,7 @@ export class RandomService {
   }
 
   getRandomFinalMultiplierForCrash(): number {
-    return this.random_bm(1, 100, 8);
+    return this.random_bm(1, 100, 7.5);
   }
 
   private random_bm(min, max, skew) {
