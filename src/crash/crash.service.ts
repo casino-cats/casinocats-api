@@ -177,20 +177,23 @@ export class CrashService implements OnModuleInit {
       { ttl: 0 },
     );
 
-    roundInfo.endTime = null;
-    roundInfo.finalMultiplier = null;
-    roundInfo.hash = null;
-    ++roundInfo.roundId;
-    roundInfo.startTime = null;
-
-    await this.cacheManager.set(CRASH_CACHE_KEY_ROUND_INFO, roundInfo, {
-      ttl: 0,
-    });
-
     this.crashGateway.wss.emit(CRASH_ENDED, {
       roundId: roundInfo.roundId,
       roundResult: roundInfo.finalMultiplier,
       seed: roundInfo.seed,
+    });
+
+    roundInfo.endTime = null;
+    roundInfo.finalMultiplier = null;
+    roundInfo.hash = null;
+    roundInfo.roundId = roundInfo.roundId + 1;
+    roundInfo.startTime = null;
+    roundInfo.seed = null;
+
+    console.log(roundInfo);
+
+    await this.cacheManager.set(CRASH_CACHE_KEY_ROUND_INFO, roundInfo, {
+      ttl: 0,
     });
   }
 
@@ -200,8 +203,12 @@ export class CrashService implements OnModuleInit {
     hash: string,
     seed: string,
   ): Promise<CrashRoundInfo> {
-    const data: CrashRoundInfo = {
-      roundId: 1,
+    const roundInfo = await this.cacheManager.get<CrashRoundInfo>(
+      CRASH_CACHE_KEY_ROUND_INFO,
+    );
+
+    const data = {
+      roundId: roundInfo ? roundInfo.roundId : 1,
       finalMultiplier,
       hash,
       seed,

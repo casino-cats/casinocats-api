@@ -7,4 +7,4 @@ export const CRASH_CACHE_KEY_ROUND_INFO = 'crashRoundInfo';
 export const CRASH_CACHE_KEY_ROUND_STATE = 'crashRoundState';
 export const CRASH_CACHE_KEY_BET_INFO = 'crashBetInfo';
 
-export const CRASH_BETTING_TIME = 10000;
+export const CRASH_BETTING_TIME = 5000;
