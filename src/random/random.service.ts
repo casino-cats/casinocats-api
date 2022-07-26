@@ -3,6 +3,11 @@ import { Cache } from 'cache-manager';
 import * as axios from 'axios';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import {
+  CRASH_MULTIPLIER_MAX,
+  CRASH_MULTIPLIER_MIN,
+  CRASH_MULTIPLIER_SKEW,
+} from './helper/constants';
 
 @Injectable()
 export class RandomService {
@@ -31,7 +36,11 @@ export class RandomService {
   }
 
   getRandomFinalMultiplierForCrash(): number {
-    return this.random_bm(1, 100, 7.5);
+    return this.random_bm(
+      CRASH_MULTIPLIER_MIN,
+      CRASH_MULTIPLIER_MAX,
+      CRASH_MULTIPLIER_SKEW,
+    );
   }
 
   private random_bm(min, max, skew) {

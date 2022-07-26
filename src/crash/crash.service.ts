@@ -11,12 +11,16 @@ import { UtilService } from 'src/util/util.service';
 import { CrashGateway } from './crash.gateway';
 import {
   CRASH_BETTING_ENDED,
+  CRASH_BETTING_ENDED_MSG,
   CRASH_BETTING_STARTED,
+  CRASH_BETTING_STARTED_MSG,
   CRASH_BETTING_TIME,
   CRASH_CACHE_KEY_BET_INFO,
   CRASH_CACHE_KEY_ROUND_STATE,
   CRASH_ENDED,
+  CRASH_ENDED_MSG,
   CRASH_STARTED,
+  CRASH_STARTED_MSG,
 } from './helper/constants';
 import { getTimeFromMultiplier } from './helper/round';
 import { CrashBetInfo, CrashRoundInfo, CRASH_ROUND_STATES } from './types';
@@ -117,6 +121,7 @@ export class CrashService implements OnModuleInit {
         });
 
         this.crashGateway.wss.emit(CRASH_BETTING_STARTED, {
+          msg: CRASH_BETTING_STARTED_MSG,
           roundId: roundInfo.roundId,
           hash: roundInfo.hash,
         });
@@ -132,6 +137,7 @@ export class CrashService implements OnModuleInit {
         );
 
         this.crashGateway.wss.emit(CRASH_BETTING_ENDED, {
+          msg: CRASH_BETTING_ENDED_MSG,
           roundId: roundInfo.roundId,
         });
       }
@@ -154,7 +160,10 @@ export class CrashService implements OnModuleInit {
         { ttl: 0 },
       );
 
-      this.crashGateway.wss.emit(CRASH_STARTED, { roundId: roundInfo.roundId });
+      this.crashGateway.wss.emit(CRASH_STARTED, {
+        msg: CRASH_STARTED_MSG,
+        roundId: roundInfo.roundId,
+      });
     }
 
     const timeLeft = roundInfo.endTime - Date.now();
@@ -178,6 +187,7 @@ export class CrashService implements OnModuleInit {
     );
 
     this.crashGateway.wss.emit(CRASH_ENDED, {
+      msg: CRASH_ENDED_MSG,
       roundId: roundInfo.roundId,
       roundResult: roundInfo.finalMultiplier,
       seed: roundInfo.seed,
