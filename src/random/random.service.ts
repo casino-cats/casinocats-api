@@ -36,10 +36,12 @@ export class RandomService {
   }
 
   getRandomFinalMultiplierForCrash(): number {
-    return this.random_bm(
-      CRASH_MULTIPLIER_MIN,
-      CRASH_MULTIPLIER_MAX,
-      CRASH_MULTIPLIER_SKEW,
+    return Number(
+      this.random_bm(
+        CRASH_MULTIPLIER_MIN,
+        CRASH_MULTIPLIER_MAX,
+        CRASH_MULTIPLIER_SKEW,
+      ).toFixed(2),
     );
   }
 

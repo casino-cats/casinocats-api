@@ -1,4 +1,4 @@
-import { Inject, CACHE_MANAGER, UseGuards } from '@nestjs/common';
+import { Inject, CACHE_MANAGER } from '@nestjs/common';
 import {
   SubscribeMessage,
   WebSocketGateway,
@@ -6,13 +6,10 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Cache } from 'cache-manager';
-import * as _ from 'lodash';
-import * as crypto from 'crypto';
 import { RoundInfoType } from './types';
 import { RandomService } from 'src/random/random.service';
 import { ROUND_CREATED, ROUND_ENDED, ROUND_STARTED } from './constants';
 import { CreateDto, AcceptDto } from './dto';
-import { WsGuard } from 'src/auth/guard/ws.guard';
 
 @WebSocketGateway({ namespace: '/coinflip', cors: 'http://localhost:3000' })
 export class CoinflipGateway {
@@ -23,7 +20,6 @@ export class CoinflipGateway {
 
   @WebSocketServer() wss: Server;
 
-  // @UseGuards(WsGuard)
   @SubscribeMessage('create')
   async handleCreateRound(client: Socket, dto: CreateDto) {
     let roundId: number = await this.cacheManager.get('coinflipRound');

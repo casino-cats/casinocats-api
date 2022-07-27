@@ -61,7 +61,7 @@ export class CrashService implements OnModuleInit {
     return 'cashOut';
   }
 
-  @Interval(1000)
+  // @Interval(1000)
   async handleInterval() {
     const roundState = await this.cacheManager.get<string>(
       CRASH_CACHE_KEY_ROUND_STATE,
@@ -146,6 +146,8 @@ export class CrashService implements OnModuleInit {
     }
 
     // crash
+
+    //TODO: final multiplier is 1
 
     if (!roundInfo.startTime) {
       const roundTime = getTimeFromMultiplier(roundInfo.finalMultiplier);
